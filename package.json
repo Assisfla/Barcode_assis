@@ -1,0 +1,17 @@
+{
+  "name": "barcode",
+  "version": "1.0.0",
+  "description": "1. Instalar la libreria de requisito:",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/main.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "barcode-flavia-project": "^2.0.0"
+  },
+  "devDependencies": {}
+}
