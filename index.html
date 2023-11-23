@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="author" content="ZXing for JS adapted by Buckland&Assis" />
+    <meta name="author" content="ZXing for JS adapted by Buckland and Assis" />
 
     <title>ZXing TypeScript | Decoding from camera stream</title>
 
@@ -28,6 +28,7 @@
       onload="this.rel='stylesheet';this.onload=null"
       href="https://unpkg.com/milligram@1.3.0/dist/milligram.min.css"
     />
+
   </head>
 
   <body>
@@ -52,6 +53,7 @@
 
         <label>Result:</label>
         <pre><code id="result"></code></pre>
+        <img src="foto.jpg" />
       </section>
     </main>
 
@@ -65,12 +67,13 @@
         let selectedDeviceId;
         const codeReader = new ZXing.BrowserMultiFormatReader();
         console.log("ZXing code reader initialized");
+
         codeReader
           .listVideoInputDevices()
           .then((videoInputDevices) => {
             const sourceSelect = document.getElementById("sourceSelect");
-            selectedDeviceId = videoInputDevices[0].deviceId;
             if (videoInputDevices.length >= 1) {
+              selectedDeviceId = videoInputDevices[0].deviceId;
               videoInputDevices.forEach((element) => {
                 const sourceOption = document.createElement("option");
                 sourceOption.text = element.label;
@@ -85,141 +88,79 @@
               const sourceSelectPanel =
                 document.getElementById("sourceSelectPanel");
               sourceSelectPanel.style.display = "block";
+            } else {
+              console.error("No se encontraron dispositivos de video.");
             }
-
-            document
-  .getElementById("startButton")
-  .addEventListener("click", () => {
-    codeReader.decodeFromVideoDevice(
-      selectedDeviceId,
-      "video",
-      (result, err) => {
-        // El result es el número que vamos a enviar al servidor haciendo una request
-        if (result) {
-          console.log(result);
-          document.getElementById("result").textContent = result.text;
-
-          // Realizar la solicitud fetch al servidor
-          fetch("https://localhost:3001/barcode", {
-            body: JSON.stringify({
-              barcode: result.text,
-            }),
-            mode: "cors",
-            method: "POST",
-            headers: new Headers({
-              "Content-Type": "application/json",
-            }),
           })
-            .then((response) => {
-              if (!response.ok) {
-                // Verificar si la respuesta indica un error
-                alert("Código de barras no aceptado, intenta con un código válido");
-                window.location.reload();
+          .catch((error) =>
+            console.error("Error al listar dispositivos de video:", error)
+          );
+
+        document.getElementById("startButton").addEventListener("click", () => {
+          codeReader.decodeFromVideoDevice(
+            selectedDeviceId,
+            "video",
+            (result, err) => {
+              if (result) {
+                console.log(result);
+
+                // Verificar si es un código QR
+                if (result.format === ZXing.BarcodeFormat.QR_CODE) {
+                  alert(
+                    "Código QR no aceptado, intenta con un código de barras válido"
+                  );
+                  window.location.reload();
+                  return;
+                }
+
+                document.getElementById("result").textContent = result.text;
+
+                fetch("https://localhost:3001/barcode", {
+                  body: JSON.stringify({
+                    barcode: result.text,
+                  }),
+                  mode: "cors",
+                  method: "POST",
+                  headers: new Headers({
+                    "Content-Type": "application/json",
+                  }),
+                })
+                  .then((response) => {
+                    if (!response.ok) {
+                      alert(
+                        "Código de barras no aceptado, intenta con un código válido"
+                      );
+                      window.location.reload();
+                    }
+                    return response.json();
+                  })
+                  .then((serverResponse) => {
+                    console.log("Respuesta del servidor => ", serverResponse);
+                    // Continuar con el procesamiento según la respuesta del servidor
+                  })
+                  .catch((err) => {
+                    console.log("Error en el fetch => ", err);
+                    alert(
+                      "Error al procesar el código de barras. Por favor, intenta nuevamente."
+                    );
+                  });
               }
-              return response.json();
-            })
-            .then((serverResponse) => {
-              console.log("Respuesta del servidor => ", serverResponse);
+              if (err && !(err instanceof ZXing.NotFoundException)) {
+                console.error(err);
+                document.getElementById("result").textContent = err;
+              }
+            }
+          );
+          console.log(
+            `Started continuous decode from camera with id ${selectedDeviceId}`
+          );
+        });
 
-              // Continuar con el procesamiento según la respuesta del servidor
-              // ...
-            })
-            .catch((err) => {
-              console.log("Error en el fetch => ", err);
-              alert("Error al procesar el código de barras: Por favor, intenta nuevamente.")
-            });
-
-          // Ir a otra ventana del navegador
-        }
-        if (err && !(err instanceof ZXing.NotFoundException)) {
-          console.error(err);
-          document.getElementById("result").textContent = err;
-        }
-      }
-    );
-    console.log(
-      `Started continuous decode from camera with id ${selectedDeviceId}`
-    );
-  });
-         
-
-        }
-        if (err && !(err instanceof ZXing.NotFoundException)) {
-          console.error(err);
-          document.getElementById("result").textContent = err;
-        }
-      }
-    );
-    console.log(
-      `Started continuous decode from camera with id ${selectedDeviceId}`
-    );
-  });
-            // document
-            //   .getElementById("startButton")
-            //   .addEventListener("click", () => {
-            //     codeReader.decodeFromVideoDevice(
-            //       selectedDeviceId,
-            //       "video",
-            //       (result, err) => {
-            //         // el result es lo que numerito que vamos a mandar al servido haciendo una request
-            //         if (result) {
-            //           console.log(result);
-            //           document.getElementById("result").textContent =
-            //             result.text;
-
-            //           fetch("https://localhost:3001/barcode", {
-            //             body: JSON.stringify({
-            //               barcode: result.text,
-            //             }),
-            //             mode: "cors",
-            //             method: "POST",
-            //             headers: new Headers({
-            //               "Content-Type": "application/json",
-            //             }),
-            //           })
-            //             .then((response) => response.json())
-            //             .then((barcode) => {
-            //               console.log(
-            //                 "El lector ya tiene el barcode => ",
-            //                 barcode
-            //               );
-            //               if (barcode.startsWith('https')) {
-            //                 alert("Código de barras no aceptado, intenta con un código válido");
-            //                 window.location.reload();
-            //               }
-            //               else {
-            //                 return barcode;
-            //               }
-            //             })
-            //             .catch((err) => {
-            //               console.log("Error en el fetch => ", err);
-            //               alert("Error al procesar el código de barras: Por favor, intenta nuevamente.")
-            //             });
-
-            //           // ir a otra ventana del navegador
-            //         }
-            //         if (err && !(err instanceof ZXing.NotFoundException)) {
-            //           console.error(err);
-            //           document.getElementById("result").textContent = err;
-            //         }
-            //       }
-            //     );
-            //     console.log(
-            //       `Started continous decode from camera with id ${selectedDeviceId}`
-            //     );
-            //   });
-
-            document
-              .getElementById("resetButton")
-              .addEventListener("click", () => {
-                codeReader.reset();
-                document.getElementById("result").textContent = "";
-                console.log("Reset.");
-              });
-          })
-          .catch((err) => {
-            console.error(err);
-          });
+        document.getElementById("resetButton").addEventListener("click", () => {
+          codeReader.reset();
+          document.getElementById("result").textContent = "";
+          console.log("Reset.");
+        });
       });
     </script>
   </body>
