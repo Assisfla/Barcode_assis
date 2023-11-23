@@ -1,4 +1,4 @@
-/**Servidor https que abre automaticamente el navegador con la url del servidor */
+//Barcode reader
 
 const express = require("express");
 const app = express();
@@ -16,17 +16,24 @@ const server = https.createServer(options, app);
 
 const port = 3001;
 
-// vamos a usar la carpeta src para guardar el html
 app.use(express.static(path.resolve(__dirname, "./src")));
 
-// create application/json parser
 const jsonParser = bodyParser.json();
 
-// POST /login gets urlencoded bodies
 app.post("/barcode", jsonParser, function (req, res) {
   console.log("barcode recibido desde el navegador", req.body);
-  buscarProducto(req.body.barcode);
-  res.send({ ok: true });
+
+  buscarProducto(req.body.barcode)
+    .then(producto => {
+      registrarLectura(req.body.barcode, "Éxito", producto.product_name);
+      guardarDatosEnArchivo();
+      res.send({ ok: true, producto: producto });
+    })
+    .catch(error => {
+      console.error('Error al buscar el producto:', error);
+      registrarLectura(req.body.barcode, "Error", '');
+      res.status(500).send({ error: 'Error al buscar el producto', mensaje: error.message });
+    });
 });
 
 app.get("/", (req, res) => {
@@ -39,13 +46,11 @@ server.listen(port, () => {
 
 function buscarProducto(barcode, showAlert = false) {
   return new Promise((resolve, reject) => {
-    // Verificar si el código de barras es una URL
     if (barcode.startsWith('http')) {
-      // Mostrar un mensaje (en consola o mediante alert)
       if (showAlert) {
-        alert('Por favor, escanea un código de barras en lugar de un código QR.');
+        reject(new Error('Por favor, escanea un código de barras en lugar de un código QR.'));
       } else {
-        console.log('Por favor, escanea un código de barras en lugar de un código QR.');
+        resolve(null); // No hay información válida para devolver
       }
       return;
     }
@@ -55,58 +60,56 @@ function buscarProducto(barcode, showAlert = false) {
     https.get(url, (resp) => {
       let data = '';
 
-      // A chunk of data has been received.
       resp.on('data', (chunk) => {
         data += chunk;
       });
 
-      // The whole response has been received.
       resp.on('end', () => {
         try {
           const producto = JSON.parse(data);
 
-          // Verificar si la respuesta contiene información válida
           if (producto && producto.product) {
-            // Puedes hacer algo con la información del producto aquí
             const nombre = producto.product.product_name;
             console.log('Nombre del producto:', nombre);
-
-            // Resuelve la promesa con el objeto del producto
             resolve(producto.product);
           } else {
-            // Si la respuesta no es válida, mostrar un mensaje (en consola o mediante alert)
-            if (showAlert) {
-              alert('No se encontró información válida para el código de barras proporcionado.');
-            } else {
-              console.log('No se encontró información válida para el código de barras proporcionado.');
-            }
+            reject(new Error('No se encontró información válida para el código de barras proporcionado.'));
           }
         } catch (error) {
-          // Capturar errores al analizar el JSON
           console.error('Error al analizar la respuesta JSON:', error);
-
-          // Mostrar un mensaje (en consola o mediante alert)
-          if (showAlert) {
-            alert('Error al analizar la respuesta JSON.');
-          } else {
-            console.log('Error al analizar la respuesta JSON.');
-          }
-
           reject(new Error('Error al analizar la respuesta JSON.'));
         }
       });
     }).on('error', (err) => {
-      // Capturar errores de la solicitud
       console.error('Error en la solicitud:', err.message);
-
-      // Mostrar un mensaje (en consola o mediante alert)
-      if (showAlert) {
-        alert('Error en la solicitud: ' + err.message);
-      } else {
-        console.log('Error en la solicitud: ' + err.message);
-      }
-
       reject(new Error('Error en la solicitud: ' + err.message));
     });
+  });
+}
+
+let datosLecturas = {
+  lecturas: []
+};
+
+function registrarLectura(codigoBarras, resultado, nombre) {
+  let lectura = {
+    codigoBarras: codigoBarras,
+    resultado: resultado,
+    nombre: nombre,
+    fecha: new Date().toISOString()
+  };
+
+  datosLecturas.lecturas.push(lectura);
+}
+
+function guardarDatosEnArchivo() {
+  const datosJSON = JSON.stringify(datosLecturas, null, 2);
+  // Utilizamos writeFile de manera asíncrona para no bloquear el hilo principal
+  fs.writeFile(path.resolve(__dirname, 'lecturas.json'), datosJSON, 'utf-8', (err) => {
+    if (err) {
+      console.error('Error al escribir el archivo:', err);
+    } else {
+      console.log('Datos guardados en el archivo lecturas.json');
+    }
   });
 }
