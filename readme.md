@@ -15,25 +15,6 @@ Este proyecto en JavaScript utiliza la biblioteca ZXing para la generación y le
 
 # Instalación
 
-Claro, puedo ayudarte a redactar los apartados de uso y características para tu proyecto en JavaScript. Aquí tienes una versión inicial del archivo `README.md` basada en el código HTML proporcionado:
-
-```markdown
-# Proyecto de Lectura de Códigos de Barras con ZXing y Core Node
-
-## Descripción
-
-Este proyecto en JavaScript utiliza la biblioteca ZXing para la generación y lectura de códigos de barras. La aplicación está construida con Core Node y permite decodificar códigos de barras a partir de una transmisión de cámara en vivo.
-
-## Tabla de Contenidos
-
-- [Instalación](#instalación)
-- [Uso](#uso)
-- [Características](#características)
-- [Contribución](#contribución)
-- [Licencia](#licencia)
-
-## Instalación
-
 1. Clona el repositorio:
 
    ```bash
@@ -80,5 +61,5 @@ Este proyecto en JavaScript utiliza la biblioteca ZXing para la generación y le
 
 ## Licencia
 
-Este proyecto está bajo la licencia [Nombre de la Licencia](enlace a la licencia).
+
 ```
