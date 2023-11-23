@@ -1,13 +1,84 @@
-# Requisitos
+# Proyecto de Lectura de Códigos de Barras con ZXing y Core Node
 
-1. Instalar la libreria de requisito:
+## Descripción
 
-```bash
- npm install
-```
+Este proyecto en JavaScript utiliza la biblioteca ZXing para la generación y lectura de códigos de barras. La aplicación está construida con Core Node y permite decodificar códigos de barras a partir de una transmisión de cámara en vivo.
 
-2. Ejecutar start para probar:
+## Tabla de Contenidos
 
-```bash
- npm run start
+- [Instalación](#instalación)
+- [Uso](#uso)
+- [Características](#características)
+- [Contribución](#contribución)
+- [Licencia](#licencia)
+
+
+# Instalación
+
+Claro, puedo ayudarte a redactar los apartados de uso y características para tu proyecto en JavaScript. Aquí tienes una versión inicial del archivo `README.md` basada en el código HTML proporcionado:
+
+```markdown
+# Proyecto de Lectura de Códigos de Barras con ZXing y Core Node
+
+## Descripción
+
+Este proyecto en JavaScript utiliza la biblioteca ZXing para la generación y lectura de códigos de barras. La aplicación está construida con Core Node y permite decodificar códigos de barras a partir de una transmisión de cámara en vivo.
+
+## Tabla de Contenidos
+
+- [Instalación](#instalación)
+- [Uso](#uso)
+- [Características](#características)
+- [Contribución](#contribución)
+- [Licencia](#licencia)
+
+## Instalación
+
+1. Clona el repositorio:
+
+   ```bash
+   git clone https://github.com/Assisfla/Barcode_assis.git
+   ```
+
+2. Instala las dependencias:
+
+   ```bash
+   npm install
+   ```
+
+## Uso
+
+1. Inicia la aplicación:
+
+   ```bash
+   npm run start
+   ```
+2. Abre tu navegador y visita http://localhost:3001.
+
+3. Haz clic en el botón "Start" para comenzar la transmisión de la cámara y decodificar códigos de barras.
+
+4. Si es necesario, selecciona el dispositivo de video deseado en el menú desplegable.
+
+5. Para detener la decodificación, haz clic en el botón "Reset".
+
+
+## Características
+
+- Utiliza la biblioteca ZXing para la decodificación de códigos de barras.
+- Permite la selección de dispositivos de video.
+- Envía la información del código de barras decodificado a un servidor Node.js para su procesamiento.
+
+## Contribución
+
+¡Las contribuciones son bienvenidas! Si deseas contribuir a este proyecto, sigue los pasos a continuación:
+
+1. Forkea el proyecto.
+2. Crea una rama (`git checkout -b feature/nueva-caracteristica`).
+3. Realiza cambios y haz commit (`git commit -am 'Añade nueva característica'`).
+4. Sube los cambios (`git push origin feature/nueva-caracteristica`).
+5. Abre una solicitud de extracción.
+
+## Licencia
+
+Este proyecto está bajo la licencia [Nombre de la Licencia](enlace a la licencia).
 ```
