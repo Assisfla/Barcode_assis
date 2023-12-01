@@ -26,6 +26,11 @@ Este proyecto en JavaScript utiliza la biblioteca ZXing para la generación y le
    ```bash
    npm install
    ```
+Además, ten en cuenta de que necesitarás tener ahabilitadas las dependencias para la ejecución de los códigos contenidos en este proyecto:
+1. body-parser
+2. colors
+3. express
+4. inquirer
 
 ## Uso
 
@@ -48,6 +53,7 @@ Este proyecto en JavaScript utiliza la biblioteca ZXing para la generación y le
 - Utiliza la biblioteca ZXing para la decodificación de códigos de barras.
 - Permite la selección de dispositivos de video.
 - Envía la información del código de barras decodificado a un servidor Node.js para su procesamiento.
+- Guarda los datos de lectura en un archivo lecturas.json.
 
 ## Contribución
 
@@ -61,5 +67,4 @@ Este proyecto en JavaScript utiliza la biblioteca ZXing para la generación y le
 
 ## Licencia
 
-Este proyecto está bajo la licencia 
-```
+Este proyecto está bajo la [Licencia MIT](LICENSE.txt).
