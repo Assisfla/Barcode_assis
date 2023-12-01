@@ -1,11 +1,14 @@
-//Barcode reader
-
 const express = require("express");
 const app = express();
 const bodyParser = require("body-parser");
 const https = require("https");
 const fs = require("fs");
 const path = require("path");
+const inquirer = require('inquirer');
+require('colors');
+
+const barcodeService = require('./barcodeService');
+const fileService = require('./fileService');
 
 const options = {
   key: fs.readFileSync(path.resolve(__dirname, "../certs/key.pem")),
@@ -20,96 +23,99 @@ app.use(express.static(path.resolve(__dirname, "./src")));
 
 const jsonParser = bodyParser.json();
 
-app.post("/barcode", jsonParser, function (req, res) {
-  console.log("barcode recibido desde el navegador", req.body);
+let mensajeProductoCaducadoMostrado = false;
+let mensajeDatosGuardadosMostrado = false;
 
-  buscarProducto(req.body.barcode)
-    .then(producto => {
-      registrarLectura(req.body.barcode, "Éxito", producto.product_name);
-      guardarDatosEnArchivo();
-      res.send({ ok: true, producto: producto });
-    })
-    .catch(error => {
-      console.error('Error al buscar el producto:', error);
-      registrarLectura(req.body.barcode, "Error", '');
-      res.status(500).send({ error: 'Error al buscar el producto', mensaje: error.message });
-    });
+const lecturasFilePath = path.resolve(__dirname, 'lecturas.json');
+
+let datosLecturas = fileService.cargarDatosDesdeArchivo(lecturasFilePath);
+
+app.post("/barcode", jsonParser, async function (req, res) {
+  mensajeDatosGuardadosMostrado = false;
+  mensajeProductoCaducadoMostrado = false;
+  
+  const producto = await barcodeService.buscarProducto(req.body.barcode);
+  const fechaCaducidad = req.body.userInput.fechaCaducidad;
+  const numeroArticulos = req.body.userInput.numeroArticulos || 1;
+
+  if (fechaCaducidad) {
+    barcodeService.validarFechaCaducidad(fechaCaducidad);
+  }
+
+  const userInput = {
+    numeroArticulos: numeroArticulos,
+    fechaCaducidad: fechaCaducidad,
+  };
+
+  await registrarLectura(req.body.barcode, "Éxito", producto, userInput);
+  console.log('Nombre del producto después de registrarLectura:', producto.nombre);
+  guardarDatosEnArchivo();
+  res.send({ ok: true, producto: producto });
 });
 
-app.get("/", (req, res) => {
-  res.sendFile(path.resolve(__dirname, "index.html"));
-});
+async function registrarLectura(codigoBarras, resultado, producto, userInput = {}) {
+  let nombreProducto = producto.nombre;
 
-server.listen(port, () => {
-  console.log(`Servidor https corriendo en https://localhost:${port}`);
-});
-
-function buscarProducto(barcode, showAlert = false) {
-  return new Promise((resolve, reject) => {
-    if (barcode.startsWith('http')) {
-      if (showAlert) {
-        reject(new Error('Por favor, escanea un código de barras en lugar de un código QR.'));
-      } else {
-        resolve(null); // No hay información válida para devolver
-      }
-      return;
-    }
-
-    const url = `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`;
-
-    https.get(url, (resp) => {
-      let data = '';
-
-      resp.on('data', (chunk) => {
-        data += chunk;
-      });
-
-      resp.on('end', () => {
-        try {
-          const producto = JSON.parse(data);
-
-          if (producto && producto.product) {
-            const nombre = producto.product.product_name;
-            console.log('Nombre del producto:', nombre);
-            resolve(producto.product);
-          } else {
-            reject(new Error('No se encontró información válida para el código de barras proporcionado.'));
-          }
-        } catch (error) {
-          console.error('Error al analizar la respuesta JSON:', error);
-          reject(new Error('Error al analizar la respuesta JSON.'));
-        }
-      });
-    }).on('error', (err) => {
-      console.error('Error en la solicitud:', err.message);
-      reject(new Error('Error en la solicitud: ' + err.message));
-    });
-  });
-}
-
-let datosLecturas = {
-  lecturas: []
-};
-
-function registrarLectura(codigoBarras, resultado, nombre) {
   let lectura = {
     codigoBarras: codigoBarras,
     resultado: resultado,
-    nombre: nombre,
-    fecha: new Date().toISOString()
+    nombre: nombreProducto,
+    fecha: new Date().toISOString(),
+    userInput: {
+      fechaCaducidad: userInput.fechaCaducidad,
+      numeroArticulos: userInput.numeroArticulos,
+    },
   };
 
   datosLecturas.lecturas.push(lectura);
 }
 
+app.get("/", (req, res) => {
+  res.sendFile(path.resolve(__dirname, "index.html"));
+});
+
+server.listen(port, async () => {
+  const preguntas = [
+    {
+      type: "list",
+      name: "opcion",
+      propiedad: "otra",
+      message: "¿Qué deseas hacer?",
+      choices: [
+        {
+          value: 1,
+          name: `${"1.".green} Listar productos`,
+        },
+        {
+          value: 0,
+          name: `${"0.".green} Salir`,
+        },
+      ],
+    },
+  ];
+
+  const inquirerMenu = async () => {
+    console.log("==========================".green);
+    console.log("  Selecciona una opción".white);
+    console.log("==========================\n".green);
+
+    const { opcion } = await inquirer.prompt(preguntas);
+
+    return opcion;
+  };
+
+  const opciónEscogida = await inquirerMenu();
+
+  if (opciónEscogida === 0) {
+    process.exit();
+  } else {
+    console.log('Para leer los códigos de barras abra tu navegador de preferencia, en https://localhost:3001.');
+  }
+});
+
 function guardarDatosEnArchivo() {
-  const datosJSON = JSON.stringify(datosLecturas, null, 2);
-  // Utilizamos writeFile de manera asíncrona para no bloquear el hilo principal
-  fs.writeFile(path.resolve(__dirname, 'lecturas.json'), datosJSON, 'utf-8', (err) => {
-    if (err) {
-      console.error('Error al escribir el archivo:', err);
-    } else {
-      console.log('Datos guardados en el archivo lecturas.json');
-    }
-  });
+  if (!mensajeDatosGuardadosMostrado) {
+    fileService.guardarDatosEnArchivo(lecturasFilePath, datosLecturas);
+    mensajeDatosGuardadosMostrado = true;
+  }
 }
