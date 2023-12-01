@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="author" content="ZXing for JS adapted by Buckland and Assis" />
   <title>Proyecto de Lectura de Códigos de Barras</title>
+  
   <style>
     body {
       font-family: 'Montserrat', sans-serif;
@@ -48,12 +49,9 @@
 <body>
   <header>
     <h1>Proyecto de Lectura de Códigos de Barras</h1>
-    <p>Descripción:</p>
-    <p>Este proyecto en JavaScript utiliza la biblioteca ZXing para lectura de códigos de barras.</p>
-    <p>La aplicación está construida con Core Node y permite decodificar códigos de barras a partir de una transmisión
-      de cámara en vivo.</p>
-    <img src="logo_Nutri_Score2.jpg" />
-  </header>
+    <p>Descripción: Este proyecto en JavaScript utiliza la biblioteca ZXing para lectura de códigos de barras.</p>
+    <p>La aplicación está construida con Core Node y permite decodificar códigos de barras a partir de una webcam.</p>
+   </header>
 
   <main class="wrapper" style="padding-top: 1em">
     <section class="container" id="demo-content">
@@ -74,113 +72,136 @@
       <label>Resultado:</label>
       <pre><code id="result"></code></pre>
 
+      <form id="userInputForm">
+        <label for="numArticulos">Número de Artículos:</label>
+        <input type="number" id="numArticulos" name="numArticulos" min="1">
+
+        <label for="fechaCaducidad">Fecha de Caducidad:</label>
+        <input type="text" id="fechaCaducidad" name="fechaCaducidad" placeholder="dd/mm/aaaa">
+
+        <button type="button" onclick="enviarUsuarioInfo()">Enviar</button>
+      </form>
     </section>
   </main>
-</body>
 
-</html>
+  <script type="text/javascript" src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
 
-<script type="text/javascript" src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
+  <script type="text/javascript">
+    window.addEventListener("load", function () {
+      let selectedDeviceId;
+      const codeReader = new ZXing.BrowserMultiFormatReader();
+      console.log("ZXing code reader initialized");
 
-<script type="text/javascript">
-  window.addEventListener("load", function () {
-    let selectedDeviceId;
-    const codeReader = new ZXing.BrowserMultiFormatReader();
-    console.log("ZXing code reader initialized");
+      codeReader
+        .listVideoInputDevices()
+        .then((videoInputDevices) => {
+          const sourceSelect = document.getElementById("sourceSelect");
+          if (videoInputDevices.length >= 1) {
+            selectedDeviceId = videoInputDevices[0].deviceId;
+            videoInputDevices.forEach((element) => {
+              const sourceOption = document.createElement("option");
+              sourceOption.text = element.label;
+              sourceOption.value = element.deviceId;
+              sourceSelect.appendChild(sourceOption);
+            });
 
-    codeReader
-      .listVideoInputDevices()
-      .then((videoInputDevices) => {
-        const sourceSelect = document.getElementById("sourceSelect");
-        if (videoInputDevices.length >= 1) {
-          selectedDeviceId = videoInputDevices[0].deviceId;
-          videoInputDevices.forEach((element) => {
-            const sourceOption = document.createElement("option");
-            sourceOption.text = element.label;
-            sourceOption.value = element.deviceId;
-            sourceSelect.appendChild(sourceOption);
-          });
+            sourceSelect.onchange = () => {
+              selectedDeviceId = sourceSelect.value;
+            };
 
-          sourceSelect.onchange = () => {
-            selectedDeviceId = sourceSelect.value;
-          };
+            const sourceSelectPanel =
+              document.getElementById("sourceSelectPanel");
+            sourceSelectPanel.style.display = "block";
+          } else {
+            console.error("No se encontraron dispositivos de video.");
+          }
+        })
+        .catch((error) =>
+          console.error("Error al listar dispositivos de video:", error)
+        );
 
-          const sourceSelectPanel =
-            document.getElementById("sourceSelectPanel");
-          sourceSelectPanel.style.display = "block";
-        } else {
-          console.error("No se encontraron dispositivos de video.");
-        }
-      })
-      .catch((error) =>
-        console.error("Error al listar dispositivos de video:", error)
-      );
+      document.getElementById("startButton").addEventListener("click", () => {
+        codeReader.decodeFromVideoDevice(
+          selectedDeviceId,
+          "video",
+          (result, err) => {
+            if (result) {
+              console.log(result);
 
-    document.getElementById("startButton").addEventListener("click", () => {
-      codeReader.decodeFromVideoDevice(
-        selectedDeviceId,
-        "video",
-        (result, err) => {
-          if (result) {
-            console.log(result);
+              if (result.format === ZXing.BarcodeFormat.QR_CODE) {
+                alert(
+                  "Código QR no aceptado, intenta con un código de barras válido"
+                );
+                window.location.reload();
+                return;
+              }
 
-
-            if (result.format === ZXing.BarcodeFormat.QR_CODE) {
-              alert(
-                "Código QR no aceptado, intenta con un código de barras válido"
-              );
-              window.location.reload();
-              return;
+              document.getElementById("result").textContent = result.text;
             }
 
-            document.getElementById("result").textContent = result.text;
+            if (err && !(err instanceof ZXing.NotFoundException)) {
+              console.error(err);
+              document.getElementById("result").textContent = err;
+            }
+          }
+        );
+        console.log(
+          `Started continuous decode from camera with id ${selectedDeviceId}`
+        );
+      });
 
-            fetch("https://localhost:3001/barcode", {
-              body: JSON.stringify({
-                barcode: result.text,
-              }),
-              mode: "cors",
-              method: "POST",
-              headers: new Headers({
-                "Content-Type": "application/json",
-              }),
-            })
-              .then((response) => {
-                if (!response.ok) {
-                  alert(
-                    "Código de barras no aceptado, intenta con un código válido"
-                  );
-                  window.location.reload();
-                }
-                return response.json();
-              })
-              .then((serverResponse) => {
-                console.log("Respuesta del servidor => ", serverResponse);
-              })
-              .catch((err) => {
-                console.log("Error en el fetch => ", err);
-                alert(
-                  "Error al procesar el código de barras. Por favor, intenta nuevamente."
-                );
-              });
-          }
-          if (err && !(err instanceof ZXing.NotFoundException)) {
-            console.error(err);
-            document.getElementById("result").textContent = err;
-          }
-        }
-      );
-      console.log(
-        `Started continuous decode from camera with id ${selectedDeviceId}`
-      );
+      document.getElementById("resetButton").addEventListener("click", () => {
+        codeReader.reset();
+        document.getElementById("result").textContent = "";
+        console.log("Reset.");
+      });
     });
 
-    document.getElementById("resetButton").addEventListener("click", () => {
-      codeReader.reset();
-      document.getElementById("result").textContent = "";
-      console.log("Reset.");
-    });
-  });
-</script>
+    function enviarUsuarioInfo() {
+      const numArticulos = document.getElementById("numArticulos").value;
+      const fechaCaducidad = document.getElementById("fechaCaducidad").value;
+      const barcode = document.getElementById("result").textContent
+
+      if(numArticulos === '' || fechaCaducidad === '' || barcode === ''){
+        alert('Información de producto y articulos y fecha es obligatoria')
+        return
+      } else {
+        const userInput = {
+        numArticulos: numArticulos,
+        fechaCaducidad: fechaCaducidad,
+      };
+
+        fetch("https://localhost:3001/barcode", {
+          body: JSON.stringify({
+            barcode: barcode,
+            userInput: userInput,
+          }),
+          mode: "cors",
+          method: "POST",
+          headers: new Headers({
+            "Content-Type": "application/json",
+          }),
+        })
+        .then((response) => {
+          if (!response.ok) {
+            alert(
+              "Error al enviar la información del usuario. Por favor, intenta nuevamente."
+            );
+          }
+          return response.json();
+        })
+        .then((serverResponse) => {
+          console.log("Respuesta del servidor => ", serverResponse);
+        })
+        .catch((err) => {
+          console.log("Error en el fetch => ", err);
+          alert(
+            "Error al procesar la información del usuario. Por favor, intenta nuevamente."
+          );
+        });
+      }
+
+    }
+  </script>
 </body>
 </html>
